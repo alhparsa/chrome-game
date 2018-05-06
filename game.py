@@ -24,7 +24,7 @@ reset=False
 count_1=0
 
 while run:
-    pygame.time.delay(10)
+    pygame.time.delay(15)
     if  pressed == True:
         count_1+=1
         vel += accel
@@ -34,15 +34,15 @@ while run:
             run=False
     keys=pygame.key.get_pressed()
 
-    if keys[pygame.K_SPACE] and (counter<19):
+    if keys[pygame.K_SPACE] and (counter<10) and y==init:
         counter += 1
     else:
         if y>=init and pressed==True:
             vel = init_vel
             y=init
             pressed = False
-        if(counter>0 and pressed==False):
-            vel*=round(counter/(3**2))
+        elif(counter>0 and pressed==False):
+            vel*=round(counter/(1.5**2.8))
             pressed = True
             counter = 0
 
