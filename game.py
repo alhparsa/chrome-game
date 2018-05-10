@@ -68,17 +68,12 @@ class Barrier(pygame.sprite.Sprite):
         self.rect.x += self.x_velocity
 
 
-<<<<<<< HEAD
-def collision_test(players, barriers):
-=======
 def outside_frame(barriers):
     for s in barriers.sprites():
         if s.rect.x < 0 - s.rect.width:
             barriers.remove(s)
     barriers.update()
     return barriers
-
->>>>>>> korea
 
 def barrier_generator(barriers, speed_change, counter):
     new_barrier = Barrier(x_velocity=-3 + speed_change)
@@ -127,7 +122,6 @@ while run:
     clock.tick(100)
     win.fill(colours["White"])
     players.update()
-<<<<<<< HEAD
     players.draw(win)
     for s in players.sprites():
         if pygame.sprite.spritecollideany(s, barriers) is not None:
@@ -137,9 +131,7 @@ while run:
         pygame.quit()
         break
     barriers.update()
-=======
     barriers = outside_frame(barriers)
->>>>>>> korea
     barriers.draw(win)
     pygame.display.update()
 
