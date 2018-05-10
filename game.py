@@ -52,23 +52,31 @@ class Player(pygame.sprite.Sprite):
 
 class Barrier(pygame.sprite.Sprite):
 
-    def __init__(self, width=10, height=random.randint(15, 45), x_velocity=-3, color=colours["Green"], screen_width=500,
+    def __init__(self, width=10, height=random.randint(0, 65), x_velocity=-3, color=colours["Green"], screen_width=500,
                  player_y_position=350):
         super(Barrier, self).__init__()
         self.x_velocity = x_velocity
-        self.image = pygame.Surface([width, height])
+        self.height_randomizer()
+        self.image = pygame.Surface([width, self.height])
         self.image.fill(color)
         self.rect = self.image.get_rect()
-        self.rect.y = player_y_position - height + 30
         self.rect.x = screen_width
+        self.rect.y = player_y_position - self.height + 30
 
+    def height_randomizer(self):
+        self.height = random.randint(15, 45)
     def update(self):
         self.rect.x += self.x_velocity
+            
 
 
-barrier = Barrier()
+#barrier = Barrier()
 barriers = pygame.sprite.Group()
-barriers.add(barrier)
+#barriers.add(barrier)
+speed_change=0
+barrier_speed=15;
+counter=0
+
 
 player = Player(win)
 player_2 = Player(win, velocity=4, color=colours["Red"])
@@ -80,12 +88,26 @@ run = True
 
 clock = pygame.time.Clock()
 while run:
+    if counter % 100 == 0:
+        speed_change -= 0.2
+        barrier_speed+=5
     clock.tick(100)
     win.fill(colours["White"])
     players.update()
     barriers.update()
+    for s in barriers.sprites():
+        if s.rect.x<0-s.rect.width:
+            barriers.remove(s)
+    if counter % barrier_speed == 0:
+        new_barrier = Barrier()
+        new_barrier.x_velocity+=speed_change
+        print (new_barrier.height)
+        new_barrier.height = random.randint(15, 45)
+        barriers.add(new_barrier)
+    
     barriers.draw(win)
     players.draw(win)
     pygame.display.update()
+    counter+=1
 
 pygame.quit()
