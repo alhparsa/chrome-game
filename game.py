@@ -1,52 +1,91 @@
-import pygame,random
+import pygame
+import random
+
 pygame.init()
-win=pygame.display.set_mode((500,500))
-pygame.display.set_caption("First Game")
-colours = {"Red":   (255,0,0),      "Green":    (0,255,0),
-          "White":  (255,255,255),  "Blue":     (0,0,255),
-          "Black":  (0,0,0)}
-run =True
-x=80
-y=350
-width=10
-height=30
-vel=6
-init_vel = vel
-init=y
-accel = -1 
-pressed = False
-counter = 2
-obs_maxh=65
-obs_minh=35
-obs_endh=random.randint(obs_minh,obs_maxh)
+win = pygame.display.set_mode((500, 500))
+pygame.display.set_caption("TRex")
+colours = {"Red": (255, 0, 0), "Green": (0, 255, 0),
+           "White": (255, 255, 255), "Blue": (0, 0, 255),
+           "Black": (0, 0, 0)}
+
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self, screen, width=10, height=30, x=80, y=350, velocity=6, acceleration=-1, color=colours["Blue"]):
+        super(Player, self).__init__()
+        self.image = pygame.Surface([width, height])
+        self.image.fill(color)
+        self.rect = self.image.get_rect()
+        self.pressed = False
+        self.counter = 2
+        self.init_velocity = velocity
+        self.init = y
+        self.screen = screen
+        self.acceleration = acceleration
+        self.velocity = velocity
+        self.rect.x = x
+        self.rect.y = y
+        self.width = width
+        self.height = height
+
+    def update(self):
+        if self.pressed:
+            self.velocity += self.acceleration
+            self.rect.y -= self.velocity
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                global run
+                run = False
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_SPACE] and (self.counter < 10) and self.rect.y == self.init:
+            self.counter += 1
+        else:
+            if self.rect.y >= self.init and self.pressed:
+                self.velocity = self.init_velocity
+                self.rect.y = self.init
+                self.pressed = False
+            elif self.counter > 2 and not self.pressed:
+                self.velocity *= round(self.counter / (1.5 ** 2.8))
+                self.pressed = True
+                self.counter = 2
+
+
+class Barrier(pygame.sprite.Sprite):
+
+    def __init__(self, width=10, height=random.randint(15, 45), x_velocity=-3, color=colours["Green"], screen_width=500,
+                 player_y_position=350):
+        super(Barrier, self).__init__()
+        self.x_velocity = x_velocity
+        self.image = pygame.Surface([width, height])
+        self.image.fill(color)
+        self.rect = self.image.get_rect()
+        self.rect.y = player_y_position - height + 30
+        self.rect.x = screen_width
+
+    def update(self):
+        self.rect.x += self.x_velocity
+
+
+barrier = Barrier()
+barriers = pygame.sprite.Group()
+barriers.add(barrier)
+
+player = Player(win)
+player_2 = Player(win, velocity=4, color=colours["Red"])
+players = pygame.sprite.Group()
+players.add(player)
+players.add(player_2)
+
+run = True
+
+clock = pygame.time.Clock()
 while run:
-    pygame.time.delay(13)
-    if  pressed == True:
-        vel += accel
-        y -= vel
-    for event in pygame.event.get():
-        if event.type==pygame.QUIT:
-            run=False
-    keys=pygame.key.get_pressed()
-
-    if keys[pygame.K_SPACE] and (counter<10) and y==init:
-        counter += 1
-    else:
-        if y>=init and pressed==True:
-            vel = init_vel
-            y=init
-            pressed = False
-        elif(counter>2 and pressed==False):
-            vel*=round(counter/(1.5**2.8))
-            pressed = True
-            counter = 2
-
-    
-    
+    clock.tick(100)
     win.fill(colours["White"])
-    pygame.draw.rect(win,colours["Red"],(x,y-height,width,height))
-    pygame.draw.rect(win,colours["Blue"],(250,350-obs_endh,width,obs_endh))
+    players.update()
+    barriers.update()
+    barriers.draw(win)
+    players.draw(win)
     pygame.display.update()
-            
+
 pygame.quit()
-            
