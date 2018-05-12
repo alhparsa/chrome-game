@@ -17,7 +17,7 @@ class nn:
         self.input_node = np.zeros(shape=[self.input_neurons], dtype=np.float32)
         self.hidden_node = np.zeros(shape=[self.hidden_neurons], dtype=np.float32)
         self.output_node = np.zeros(shape=[self.output_neurons], dtype=np.float32)
-        self.rnd = random.uniform(-1, 1)
+        self.rnd = random.uniform(-5, 5)
         if initialize_weight_bias:
             self.input_hidden_weights = np.zeros(shape=[self.input_neurons, self.hidden_neurons], dtype=np.float32)
             self.hidden_output_weights = np.zeros(shape=[self.hidden_neurons, self.output_neurons], dtype=np.float32)
@@ -251,13 +251,34 @@ def neuron_inputs(player, barriers, speed_change):
     input = np.array([player.velocity, player.rect.x, speed_change, get_last_barrier_x(barriers, player)])
     return np.argmax(player.computeOutputs(input), 0)
 
+def mutate(selected):
+    highest = selected.sprites()[-1]
+    players=pygame.sprite.Group()
+    for i in range (100):
+        new_player = Player()
+        weights = []
+        rnd = random.randrange(0,8)
+        randomly_selected = selected.sprites()[rnd]
+        for weight in range(27):
+            rnd_2 = random.randrange(1,3)
+            if rnd_2 == 1:
+                weights[weight]=highest.getWeights()[weight]
+            elif rnd_2 == 2:
+                weights[weight]=randomly_selected.getWeights()[weight]
+            else:
+                weights[weight] = random.uniform(-5,5)
+        new_player.setWeights(weights)
+        players.add(new_player)
+    return(players)
+        
 
 def reset(speed_change, barriers, counter, players, select_players):
+    mutate(select_players)
     speed_change = 0
     barriers = pygame.sprite.Group()
     speed_change = 0
     counter = 1
-    players = player_generator()
+    players = mutate(select_players)
     select_players = pygame.sprite.Group()
     return (speed_change, barriers, counter, players, select_players)
 
@@ -307,9 +328,9 @@ while run:
             players.remove(s)
         fitness(s, barriers)
 
-        if neuron_inputs(s, barriers, speed_change) == 0:
+        if neuron_inputs(s, barriers, speed_change) == 1:
             s.counter = 0
-        elif neuron_inputs(s, barriers, speed_change) == 1:
+        elif neuron_inputs(s, barriers, speed_change) == 0:
             s.counter = 5
         elif neuron_inputs(s, barriers, speed_change) == 2:
             s.counter = 9
