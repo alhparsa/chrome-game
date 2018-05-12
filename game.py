@@ -251,26 +251,27 @@ def neuron_inputs(player, barriers, speed_change):
     input = np.array([player.velocity, player.rect.x, speed_change, get_last_barrier_x(barriers, player)])
     return np.argmax(player.computeOutputs(input), 0)
 
+
 def mutate(selected):
     highest = selected.sprites()[-1]
-    players=pygame.sprite.Group()
-    for i in range (100):
+    players = pygame.sprite.Group()
+    for i in range(100):
         new_player = Player()
         weights = []
-        rnd = random.randrange(0,8)
+        rnd = random.randrange(0, 8)
         randomly_selected = selected.sprites()[rnd]
         for weight in range(27):
-            rnd_2 = random.randrange(1,3)
+            rnd_2 = random.randrange(1, 3)
             if rnd_2 == 1:
-                weights[weight]=highest.getWeights()[weight]
+                weights.append(highest.getWeights()[weight])
             elif rnd_2 == 2:
-                weights[weight]=randomly_selected.getWeights()[weight]
+                weights.append(randomly_selected.getWeights()[weight])
             else:
-                weights[weight] = random.uniform(-5,5)
+                weights.append(random.uniform(-5, 5))
         new_player.setWeights(weights)
         players.add(new_player)
-    return(players)
-        
+    return (players)
+
 
 def reset(speed_change, barriers, counter, players, select_players):
     mutate(select_players)
@@ -338,6 +339,7 @@ while run:
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             players.remove(s)
     if not players:
+        print len(select_players)
         gen += 1
         speed_change, barriers, counter, players, select_players = reset(speed_change, barriers, counter, players,
                                                                          select_players)
