@@ -302,17 +302,18 @@ clock = pygame.time.Clock()
 generation = 0
 pygame.font.init()
 gen = 0
+score = 0
 
 
-def generation_counter(generation):
+def generation_counter(generation, players):
     pygame.font.init()
     myfont = pygame.font.SysFont('Arial', 15)
-    textsurface = myfont.render('Gen: ' + str(generation), False, (0, 0, 0))
+    textsurface = myfont.render('Gen: ' + str(generation) + 'Number of players: ' + str(players), False, (0, 0, 0))
     return textsurface
 
 
 while run:
-    gen_text = generation_counter(gen)
+    gen_text = generation_counter(gen, len(players.sprites()))
     secondary_timer = datetime.now()
     diff = secondary_timer - timer
     diff = diff.total_seconds()
