@@ -1,8 +1,7 @@
 import pygame
 import random
 from datetime import datetime
-from math import atan
-from math import atan, tanh
+from math import atan, tanh, exp
 import numpy as np
 
 colours = {"Red": (255, 0, 0), "Green": (0, 255, 0),
@@ -11,20 +10,31 @@ colours = {"Red": (255, 0, 0), "Green": (0, 255, 0),
 
 
 class nn:
-    def __init__(self, numInput=3, numHidden=3, numOutput=1, initialize_weight_bias=True):
+    def __init__(self, numInput=4, numHidden=3, numOutput=3, initialize_weight_bias=True):
         self.input_neurons = numInput
         self.hidden_neurons = numHidden
         self.output_neurons = numOutput
         self.input_node = np.zeros(shape=[self.input_neurons], dtype=np.float32)
         self.hidden_node = np.zeros(shape=[self.hidden_neurons], dtype=np.float32)
         self.output_node = np.zeros(shape=[self.output_neurons], dtype=np.float32)
-        self.rnd = random.Random(0)
+        self.rnd = random.uniform(-1, 1)
         if initialize_weight_bias:
             self.input_hidden_weights = np.zeros(shape=[self.input_neurons, self.hidden_neurons], dtype=np.float32)
             self.hidden_output_weights = np.zeros(shape=[self.hidden_neurons, self.output_neurons], dtype=np.float32)
             self.hBiases = np.zeros(shape=[self.hidden_neurons], dtype=np.float32)
             self.oBiases = np.zeros(shape=[self.output_neurons], dtype=np.float32)
             self.initializeWeights()
+
+    @staticmethod
+    def softmax(oSums):
+        result = np.zeros(shape=[len(oSums)], dtype=np.float32)
+        m = max(oSums)
+        divisor = 0.0
+        for k in range(len(oSums)):
+            divisor += exp(oSums[k] - m)
+        for k in range(len(result)):
+            result[k] = exp(oSums[k] - m) / divisor
+        return result
 
     def setWeights(self, weights):
         if len(weights) != self.totalWeights(self.input_neurons, self.hidden_neurons, self.output_neurons):
@@ -80,7 +90,7 @@ class nn:
         lo = -0.01
         hi = 0.01
         for idx in range(len(wts)):
-            wts[idx] = (hi - lo) * self.rnd.random() + lo
+            wts[idx] = (hi - lo) * self.rnd + lo
         self.setWeights(wts)
 
     def computeOutputs(self, xValues):
@@ -106,6 +116,10 @@ class nn:
 
         for k in range(self.output_neurons):
             oSums[k] += self.oBiases[k]
+
+        softOut = self.softmax(oSums)
+        for k in range(self.output_neurons):
+            self.output_node[k] = softOut[k]
 
         result = np.zeros(shape=self.output_neurons, dtype=np.float32)
         for k in range(self.output_neurons):
@@ -148,13 +162,15 @@ class Player(pygame.sprite.Sprite, nn):
         self.fitness = -1
 
     def update(self):
-        if self.pressed:
-            self.velocity += self.acceleration
-            self.rect.y -= self.velocity
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 global run
                 run = False
+
+        if self.pressed:
+            self.velocity += self.acceleration
+            self.rect.y -= self.velocity
+
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_SPACE] and (self.counter < 10) and self.rect.y == self.init:
@@ -232,8 +248,18 @@ def get_last_barrier_x(barriers, player):
 
 
 def neuron_inputs(player, barriers, speed_change):
-    input = np.array([player.rect.x, speed_change, get_last_barrier_x(barriers, player)])
-    return player.computeOutputs(input)
+    input = np.array([player.velocity, player.rect.x, speed_change, get_last_barrier_x(barriers, player)])
+    return np.argmax(player.computeOutputs(input), 0)
+
+
+def reset(speed_change, barriers, counter, players, select_players):
+    speed_change = 0
+    barriers = pygame.sprite.Group()
+    speed_change = 0
+    counter = 1
+    players = player_generator()
+    select_players = pygame.sprite.Group()
+    return (speed_change, barriers, counter, players, select_players)
 
 
 pygame.init()
@@ -251,8 +277,20 @@ parents_found = False
 run = True
 timer = datetime.now()
 clock = pygame.time.Clock()
+generation = 0
+pygame.font.init()
+gen = 0
+
+
+def generation_counter(generation):
+    pygame.font.init()
+    myfont = pygame.font.SysFont('Arial', 15)
+    textsurface = myfont.render('Gen: ' + str(generation), False, (0, 0, 0))
+    return textsurface
+
 
 while run:
+    gen_text = generation_counter(gen)
     secondary_timer = datetime.now()
     diff = secondary_timer - timer
     diff = diff.total_seconds()
@@ -266,33 +304,30 @@ while run:
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             if len(players.sprites()) <= 10:
                 selection(select_players, s)
-                print("done")
             players.remove(s)
         fitness(s, barriers)
 
-        if neuron_inputs(s, barriers, speed_change) > 0:
-            s.pressed = True
+        if neuron_inputs(s, barriers, speed_change) == 0:
+            s.counter = 0
+        elif neuron_inputs(s, barriers, speed_change) == 1:
+            s.counter = 5
+        elif neuron_inputs(s, barriers, speed_change) == 2:
+            s.counter = 9
 
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             players.remove(s)
     if not players:
-        run == False
-        pygame.quit()
-        break
+        gen += 1
+        speed_change, barriers, counter, players, select_players = reset(speed_change, barriers, counter, players,
+                                                                         select_players)
     clock.tick(100)
     win.fill(colours["White"])
     players.update()
     players.draw(win)
-    for s in players.sprites():
-        if pygame.sprite.spritecollideany(s, barriers) is not None:
-            players.remove(s)
-    if not players:
-        run == False
-        pygame.quit()
-        break
     barriers.update()
     barriers = outside_frame(barriers)
     barriers.draw(win)
+    win.blit(gen_text, (0, 0))
     pygame.display.update()
 
 pygame.quit()
