@@ -1,4 +1,3 @@
 language: python
 before_install:
-  pip install pygame
-  pip install numpy
+  pip install pygame numpy
