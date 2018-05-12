@@ -10,7 +10,7 @@ colours = {"Red": (255, 0, 0), "Green": (0, 255, 0),
 
 
 class nn:
-    def __init__(self, numInput=4, numHidden=3, numOutput=3, initialize_weight_bias=True):
+    def __init__(self, numInput=4, numHidden=3, numOutput=9, initialize_weight_bias=True):
         self.input_neurons = numInput
         self.hidden_neurons = numHidden
         self.output_neurons = numOutput
@@ -206,11 +206,12 @@ class Barrier(pygame.sprite.Sprite):
     def update(self):
         self.rect.x += self.x_velocity
 
+
 class Top_Barrier(pygame.sprite.Sprite):
     def __init__(self, width=10, height=0, x_velocity=-3, color=colours["Green"], screen_width=500,
                  player_y_position=350):
         super(Top_Barrier, self).__init__()
-        self.height = 350-random.randint(50,100)-height
+        self.height = 350 - random.randint(50, 100) - height
         self.x_velocity = x_velocity
         self.image = pygame.Surface([width, self.height])
         self.image.fill(color)
@@ -219,10 +220,12 @@ class Top_Barrier(pygame.sprite.Sprite):
         self.rect.y = 0
 
     def height_randomizer(self, bottom_barrier):
-        self.height = 350-random.randint(50,70)-bottom_barrier-10
+        self.height = 350 - random.randint(50, 70) - bottom_barrier - 10
 
     def update(self):
         self.rect.x += self.x_velocity
+
+
 def outside_frame(barriers):
     for s in barriers.sprites():
         if s.rect.x < 0 - s.rect.width:
@@ -233,7 +236,7 @@ def outside_frame(barriers):
 
 def barrier_generator(barriers, speed_change, counter):
     new_barrier = Barrier(x_velocity=-3 + speed_change)
-    top_barrier = Top_Barrier(x_velocity=-3 + speed_change, height = new_barrier.rect.height)
+    top_barrier = Top_Barrier(x_velocity=-3 + speed_change, height=new_barrier.rect.height)
     barriers.add(new_barrier)
     barriers.add(top_barrier)
     return barriers
@@ -278,7 +281,7 @@ def mutate(selected):
         weights = []
         rnd = random.randrange(0, 8)
         randomly_selected = selected.sprites()[rnd]
-        for weight in range(27):
+        for weight in range(51):
             rnd_2 = random.randrange(1, 3)
             if rnd_2 == 1:
                 weights.append(highest.getWeights()[weight])
@@ -325,7 +328,8 @@ gen = 0
 def generation_counter(generation, players):
     pygame.font.init()
     myfont = pygame.font.SysFont('Arial', 15)
-    textsurface = myfont.render('Gen: ' + str(generation) + ' Number of players: ' + str(len(players.sprites())), False, (0, 0, 0))
+    textsurface = myfont.render('Gen: ' + str(generation) + ' Number of players: ' + str(len(players.sprites())), False,
+                                (0, 0, 0))
     return textsurface
 
 
@@ -347,13 +351,7 @@ while run:
             players.remove(s)
         fitness(s, barriers)
 
-        if neuron_inputs(s, barriers, speed_change) == 1:
-            s.counter = 0
-        elif neuron_inputs(s, barriers, speed_change) == 0:
-            s.counter = 5
-        elif neuron_inputs(s, barriers, speed_change) == 2:
-            s.counter = 9
-
+        s.counter = neuron_inputs(s, barriers, speed_change)
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             players.remove(s)
     if not players:
