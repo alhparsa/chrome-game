@@ -2,15 +2,136 @@ import pygame
 import random
 from datetime import datetime
 from math import atan
+from math import atan, tanh
+import numpy as np
 
 colours = {"Red": (255, 0, 0), "Green": (0, 255, 0),
            "White": (255, 255, 255), "Blue": (0, 0, 255),
            "Black": (0, 0, 0)}
 
 
-class Player(pygame.sprite.Sprite):
+class nn:
+    def __init__(self, numInput=3, numHidden=3, numOutput=1, initialize_weight_bias=True):
+        self.input_neurons = numInput
+        self.hidden_neurons = numHidden
+        self.output_neurons = numOutput
+        self.input_node = np.zeros(shape=[self.input_neurons], dtype=np.float32)
+        self.hidden_node = np.zeros(shape=[self.hidden_neurons], dtype=np.float32)
+        self.output_node = np.zeros(shape=[self.output_neurons], dtype=np.float32)
+        self.rnd = random.Random(0)
+        if initialize_weight_bias:
+            self.input_hidden_weights = np.zeros(shape=[self.input_neurons, self.hidden_neurons], dtype=np.float32)
+            self.hidden_output_weights = np.zeros(shape=[self.hidden_neurons, self.output_neurons], dtype=np.float32)
+            self.hBiases = np.zeros(shape=[self.hidden_neurons], dtype=np.float32)
+            self.oBiases = np.zeros(shape=[self.output_neurons], dtype=np.float32)
+            self.initializeWeights()
+
+    def setWeights(self, weights):
+        if len(weights) != self.totalWeights(self.input_neurons, self.hidden_neurons, self.output_neurons):
+            print("Warning: len(weights) error in setWeights()")
+
+        idx = 0
+        for i in range(self.input_neurons):
+            for j in range(self.hidden_neurons):
+                self.input_hidden_weights[i][j] = weights[idx]
+                idx += 1
+
+        for j in range(self.hidden_neurons):
+            self.hBiases[j] = weights[idx]
+            idx += 1
+
+        for i in range(self.hidden_neurons):
+            for j in range(self.output_neurons):
+                self.hidden_output_weights[i][j] = weights[idx]
+                idx += 1
+
+        for k in range(self.output_neurons):
+            self.oBiases[k] = weights[idx]
+            idx += 1
+
+    def getWeights(self):
+        tw = self.totalWeights(self.input_neurons, self.hidden_neurons, self.output_neurons)
+        result = np.zeros(shape=[tw], dtype=np.float32)
+        idx = 0  # points into result
+
+        for i in range(self.input_neurons):
+            for j in range(self.hidden_neurons):
+                result[idx] = self.input_hidden_weights[i][j]
+                idx += 1
+
+        for j in range(self.hidden_neurons):
+            result[idx] = self.hBiases[j]
+            idx += 1
+
+        for i in range(self.hidden_neurons):
+            for j in range(self.output_neurons):
+                result[idx] = self.hidden_output_weights[i][j]
+                idx += 1
+
+        for k in range(self.output_neurons):
+            result[idx] = self.oBiases[k]
+            idx += 1
+
+        return result
+
+    def initializeWeights(self):
+        numWts = self.totalWeights(self.input_neurons, self.hidden_neurons, self.output_neurons)
+        wts = np.zeros(shape=[numWts], dtype=np.float32)
+        lo = -0.01
+        hi = 0.01
+        for idx in range(len(wts)):
+            wts[idx] = (hi - lo) * self.rnd.random() + lo
+        self.setWeights(wts)
+
+    def computeOutputs(self, xValues):
+        hSums = np.zeros(shape=[self.hidden_neurons], dtype=np.float32)
+        oSums = np.zeros(shape=[self.output_neurons], dtype=np.float32)
+
+        for i in range(self.input_neurons):
+            self.input_node[i] = xValues[i]
+
+        for j in range(self.hidden_neurons):
+            for i in range(self.input_neurons):
+                hSums[j] += self.input_node[i] * self.input_hidden_weights[i][j]
+
+        for j in range(self.hidden_neurons):
+            hSums[j] += self.hBiases[j]
+
+        for j in range(self.hidden_neurons):
+            self.hidden_node[j] = self.hypertan(hSums[j])
+
+        for k in range(self.output_neurons):
+            for j in range(self.hidden_neurons):
+                oSums[k] += self.hidden_node[j] * self.hidden_output_weights[j][k]
+
+        for k in range(self.output_neurons):
+            oSums[k] += self.oBiases[k]
+
+        result = np.zeros(shape=self.output_neurons, dtype=np.float32)
+        for k in range(self.output_neurons):
+            result[k] = self.output_node[k]
+
+        return result
+
+    @staticmethod
+    def hypertan(x):
+        if x < -20.0:
+            return -1.0
+        elif x > 20.0:
+            return 1.0
+        else:
+            return tanh(x)
+
+    @staticmethod
+    def totalWeights(nInput, nHidden, nOutput):
+        tw = (nInput * nHidden) + (nHidden * nOutput) + nHidden + nOutput
+        return tw
+
+
+class Player(pygame.sprite.Sprite, nn):
     def __init__(self, width=10, height=30, x=80, y=350, velocity=6, acceleration=-1, color=colours["Blue"]):
-        super(Player, self).__init__()
+        pygame.sprite.Sprite.__init__(self)
+        nn.__init__(self)
         self.image = pygame.Surface([width, height])
         self.image.fill(color)
         self.rect = self.image.get_rect()
@@ -24,7 +145,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y = y
         self.width = width
         self.height = height
-        self.fitness=-1
+        self.fitness = -1
 
     def update(self):
         if self.pressed:
@@ -76,6 +197,7 @@ def outside_frame(barriers):
     barriers.update()
     return barriers
 
+
 def barrier_generator(barriers, speed_change, counter):
     new_barrier = Barrier(x_velocity=-3 + speed_change)
     new_barrier.height = random.randint(15, 45)
@@ -91,13 +213,27 @@ def player_generator():
         players.add(player)
     return players
 
+
 def fitness(player, barriers):
     if pygame.sprite.spritecollideany(player, barriers) is None:
-        player.fitness+=1
+        player.fitness += 1
 
-def selection(selected,player):
-            selected.add(player)
 
+def selection(selected, player):
+    selected.add(player)
+
+
+def get_last_barrier_x(barriers, player):
+    for i, barrier in enumerate(barriers.sprites()):
+        if barrier.rect.x < player.rect.x and barriers.sprites()[-1] != barrier:
+            return barriers.sprites()[i + 1].rect.x
+        else:
+            return barrier.rect.x
+
+
+def neuron_inputs(player, barriers, speed_change):
+    input = np.array([player.rect.x, speed_change, get_last_barrier_x(barriers, player)])
+    return player.computeOutputs(input)
 
 
 pygame.init()
@@ -111,7 +247,10 @@ select_players = pygame.sprite.Group()
 run = True
 timer = datetime.now()
 clock = pygame.time.Clock()
-parents_found=False
+parents_found = False
+run = True
+timer = datetime.now()
+clock = pygame.time.Clock()
 
 while run:
     secondary_timer = datetime.now()
@@ -125,12 +264,17 @@ while run:
         speed_change -= 0.01
     for s in players.sprites():
         if pygame.sprite.spritecollideany(s, barriers) is not None:
-                if len(players.sprites())<=10:
-                    selection(select_players,s)
-                    print("done")
-                players.remove(s)
-        fitness(s,barriers)
+            if len(players.sprites()) <= 10:
+                selection(select_players, s)
+                print("done")
+            players.remove(s)
+        fitness(s, barriers)
 
+        if neuron_inputs(s, barriers, speed_change) > 0:
+            s.pressed = True
+
+        if pygame.sprite.spritecollideany(s, barriers) is not None:
+            players.remove(s)
     if not players:
         run == False
         pygame.quit()
