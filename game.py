@@ -24,6 +24,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y = y
         self.width = width
         self.height = height
+        self.fitness=-1
 
     def update(self):
         if self.pressed:
@@ -90,6 +91,14 @@ def player_generator():
         players.add(player)
     return players
 
+def fitness(player, barriers):
+    if pygame.sprite.spritecollideany(player, barriers) is None:
+        player.fitness+=1
+
+def selection(selected,player):
+            selected.add(player)
+
+
 
 pygame.init()
 win = pygame.display.set_mode((500, 500))
@@ -98,9 +107,11 @@ barriers = pygame.sprite.Group()
 speed_change = 0
 counter = 1
 players = player_generator()
+select_players = pygame.sprite.Group()
 run = True
 timer = datetime.now()
 clock = pygame.time.Clock()
+parents_found=False
 
 while run:
     secondary_timer = datetime.now()
@@ -114,7 +125,12 @@ while run:
         speed_change -= 0.01
     for s in players.sprites():
         if pygame.sprite.spritecollideany(s, barriers) is not None:
-            players.remove(s)
+                if len(players.sprites())<=10:
+                    selection(select_players,s)
+                    print("done")
+                players.remove(s)
+        fitness(s,barriers)
+
     if not players:
         run == False
         pygame.quit()
