@@ -193,6 +193,7 @@ class Barrier(pygame.sprite.Sprite):
         super(Barrier, self).__init__()
         self.x_velocity = x_velocity
         self.height_randomizer()
+
         self.image = pygame.Surface([width, self.height])
         self.image.fill(color)
         self.rect = self.image.get_rect()
@@ -205,7 +206,23 @@ class Barrier(pygame.sprite.Sprite):
     def update(self):
         self.rect.x += self.x_velocity
 
+class Top_Barrier(pygame.sprite.Sprite):
+    def __init__(self, width=10, height=0, x_velocity=-3, color=colours["Green"], screen_width=500,
+                 player_y_position=350):
+        super(Top_Barrier, self).__init__()
+        self.height = 350-random.randint(50,100)-height
+        self.x_velocity = x_velocity
+        self.image = pygame.Surface([width, self.height])
+        self.image.fill(color)
+        self.rect = self.image.get_rect()
+        self.rect.x = screen_width
+        self.rect.y = 0
 
+    def height_randomizer(self, bottom_barrier):
+        self.height = 350-random.randint(50,70)-bottom_barrier-10
+
+    def update(self):
+        self.rect.x += self.x_velocity
 def outside_frame(barriers):
     for s in barriers.sprites():
         if s.rect.x < 0 - s.rect.width:
@@ -216,8 +233,9 @@ def outside_frame(barriers):
 
 def barrier_generator(barriers, speed_change, counter):
     new_barrier = Barrier(x_velocity=-3 + speed_change)
-    new_barrier.height = random.randint(15, 45)
+    top_barrier = Top_Barrier(x_velocity=-3 + speed_change, height = new_barrier.rect.height)
     barriers.add(new_barrier)
+    barriers.add(top_barrier)
     return barriers
 
 
@@ -302,18 +320,17 @@ clock = pygame.time.Clock()
 generation = 0
 pygame.font.init()
 gen = 0
-score = 0
 
 
 def generation_counter(generation, players):
     pygame.font.init()
     myfont = pygame.font.SysFont('Arial', 15)
-    textsurface = myfont.render('Gen: ' + str(generation) + 'Number of players: ' + str(players), False, (0, 0, 0))
+    textsurface = myfont.render('Gen: ' + str(generation) + ' Number of players: ' + str(len(players.sprites())), False, (0, 0, 0))
     return textsurface
 
 
 while run:
-    gen_text = generation_counter(gen, len(players.sprites()))
+    gen_text = generation_counter(gen, players)
     secondary_timer = datetime.now()
     diff = secondary_timer - timer
     diff = diff.total_seconds()
