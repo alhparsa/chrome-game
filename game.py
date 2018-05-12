@@ -10,14 +10,14 @@ colours = {"Red": (255, 0, 0), "Green": (0, 255, 0),
 
 
 class nn:
-    def __init__(self, numInput=4, numHidden=3, numOutput=9, initialize_weight_bias=True):
+    def __init__(self, numInput=5, numHidden=4, numOutput=4, initialize_weight_bias=True):
         self.input_neurons = numInput
         self.hidden_neurons = numHidden
         self.output_neurons = numOutput
         self.input_node = np.zeros(shape=[self.input_neurons], dtype=np.float32)
         self.hidden_node = np.zeros(shape=[self.hidden_neurons], dtype=np.float32)
         self.output_node = np.zeros(shape=[self.output_neurons], dtype=np.float32)
-        self.rnd = random.uniform(-5, 5)
+        self.rnd = random.uniform(-4, 4)
         if initialize_weight_bias:
             self.input_hidden_weights = np.zeros(shape=[self.input_neurons, self.hidden_neurons], dtype=np.float32)
             self.hidden_output_weights = np.zeros(shape=[self.hidden_neurons, self.output_neurons], dtype=np.float32)
@@ -188,7 +188,7 @@ class Player(pygame.sprite.Sprite, nn):
 
 class Barrier(pygame.sprite.Sprite):
 
-    def __init__(self, width=10, height=0, x_velocity=-3, color=colours["Green"], screen_width=500,
+    def __init__(self, width=5, height=0, x_velocity=-3, color=colours["Green"], screen_width=500,
                  player_y_position=350):
         super(Barrier, self).__init__()
         self.x_velocity = x_velocity
@@ -208,19 +208,16 @@ class Barrier(pygame.sprite.Sprite):
 
 
 class Top_Barrier(pygame.sprite.Sprite):
-    def __init__(self, width=10, height=0, x_velocity=-3, color=colours["Green"], screen_width=500,
+    def __init__(self, width=5, height=0, x_velocity=-3, color=colours["Green"], screen_width=500,
                  player_y_position=350):
         super(Top_Barrier, self).__init__()
-        self.height = 350 - random.randint(50, 100) - height
+        self.height = 350 - random.randint(50,100) - height
         self.x_velocity = x_velocity
         self.image = pygame.Surface([width, self.height])
         self.image.fill(color)
         self.rect = self.image.get_rect()
         self.rect.x = screen_width
         self.rect.y = 0
-
-    def height_randomizer(self, bottom_barrier):
-        self.height = 350 - random.randint(50, 70) - bottom_barrier - 10
 
     def update(self):
         self.rect.x += self.x_velocity
@@ -262,14 +259,15 @@ def selection(selected, player):
 
 def get_last_barrier_x(barriers, player):
     for i, barrier in enumerate(barriers.sprites()):
-        if barrier.rect.x < player.rect.x and barriers.sprites()[-1] != barrier:
-            return barriers.sprites()[i + 1].rect.x
+        if barrier.rect.x < player.rect.x and barriers.sprites()[-2] != barrier:
+            return (barriers.sprites()[i + 2],barriers.sprites()[i + 3])
         else:
-            return barrier.rect.x
+            return (barrier, barriers.sprites()[i + 1])
 
 
 def neuron_inputs(player, barriers, speed_change):
-    input = np.array([player.velocity, player.rect.x, speed_change, get_last_barrier_x(barriers, player)])
+    last_barrier, last_barrier_top=get_last_barrier_x(barriers, player) 
+    input = np.array([player.velocity, last_barrier.rect.y, speed_change, last_barrier.rect.y, last_barrier_top.rect.y])
     return np.argmax(player.computeOutputs(input), 0)
 
 
@@ -281,7 +279,7 @@ def mutate(selected):
         weights = []
         rnd = random.randrange(0, 8)
         randomly_selected = selected.sprites()[rnd]
-        for weight in range(51):
+        for weight in range(84):
             rnd_2 = random.randrange(1, 3)
             if rnd_2 == 1:
                 weights.append(highest.getWeights()[weight])
@@ -350,8 +348,8 @@ while run:
                 selection(select_players, s)
             players.remove(s)
         fitness(s, barriers)
-
-        s.counter = neuron_inputs(s, barriers, speed_change)
+        if barriers:
+            s.counter = neuron_inputs(s, barriers, speed_change)*2
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             players.remove(s)
     if not players:
