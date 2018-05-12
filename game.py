@@ -340,7 +340,6 @@ while run:
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             players.remove(s)
     if not players:
-        print len(select_players)
         gen += 1
         speed_change, barriers, counter, players, select_players = reset(speed_change, barriers, counter, players,
                                                                          select_players)
