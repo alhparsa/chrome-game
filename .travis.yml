@@ -2,6 +2,6 @@ language: python
 install:
   - pip install -r requirements.txt
 script: 
-  - python hello.py
+  - python game.py
 
   
