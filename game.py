@@ -211,7 +211,7 @@ class Top_Barrier(pygame.sprite.Sprite):
     def __init__(self, width=5, height=0, x_velocity=-3, color=colours["Green"], screen_width=500,
                  player_y_position=350):
         super(Top_Barrier, self).__init__()
-        self.height = 350 - random.randint(50,100) - height
+        self.height = 350 - random.randint(50, 100) - height
         self.x_velocity = x_velocity
         self.image = pygame.Surface([width, self.height])
         self.image.fill(color)
@@ -258,28 +258,38 @@ def selection(selected, player):
 
 
 def get_last_barrier_x(barriers, player):
+    returning_barriers = pygame.sprite.Group()
     for i, barrier in enumerate(barriers.sprites()):
-        if barrier.rect.x < player.rect.x and barriers.sprites()[-2] != barrier:
-            return (barriers.sprites()[i + 2],barriers.sprites()[i + 3])
+        if i % 2 == 0:
+            if barrier.rect.x < player.rect.x and barriers.sprites()[-1] != barrier:
+                returning_barriers.add(barriers.sprites()[i])
+            else:
+                returning_barriers.add(barrier)
         else:
-            return (barrier, barriers.sprites()[i + 1])
+            if barrier.rect.x < player.rect.x and barriers.sprites()[-1] != barrier:
+                returning_barriers.add(barriers.sprites()[i])
+            else:
+                returning_barriers.add(barrier)
+    return returning_barriers.sprites()
 
 
 def neuron_inputs(player, barriers, speed_change):
-    last_barrier, last_barrier_top=get_last_barrier_x(barriers, player) 
-    input = np.array([player.velocity, last_barrier.rect.y, speed_change, last_barrier.rect.y, last_barrier_top.rect.y])
+    last_barrier = get_last_barrier_x(barriers, player)
+    input = np.array([player.velocity, last_barrier[0].rect.y, speed_change, last_barrier[1].rect.x,
+                      last_barrier[1].rect.y])
     return np.argmax(player.computeOutputs(input), 0)
 
 
 def mutate(selected):
+    rnd = random.randint(0, 5)
     highest = selected.sprites()[-1]
     players = pygame.sprite.Group()
     for i in range(100):
         new_player = Player()
         weights = []
-        rnd = random.randrange(0, 8)
+        rnd = random.randrange(6, 9)
         randomly_selected = selected.sprites()[rnd]
-        for weight in range(84):
+        for weight in range(44):
             rnd_2 = random.randrange(1, 3)
             if rnd_2 == 1:
                 weights.append(highest.getWeights()[weight])
@@ -342,14 +352,17 @@ while run:
         counter += 1
     if counter % 5 == 0:
         speed_change -= 0.01
-    for s in players.sprites():
+    for i, s in enumerate(players.sprites()):
+        if i > len(players.sprites()) - 1:
+            if s.getWeights() == players.sprites()[i + 1].getWeights():
+                print "same"
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             if len(players.sprites()) <= 10:
                 selection(select_players, s)
             players.remove(s)
         fitness(s, barriers)
         if barriers:
-            s.counter = neuron_inputs(s, barriers, speed_change)*2
+            s.counter = neuron_inputs(s, barriers, speed_change) * 2
         if pygame.sprite.spritecollideany(s, barriers) is not None:
             players.remove(s)
     if not players:
